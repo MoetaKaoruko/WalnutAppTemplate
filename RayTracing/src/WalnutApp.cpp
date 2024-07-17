@@ -6,6 +6,10 @@
 #include "Walnut/Random.h"
 #include "Walnut/Timer.h"
 
+#include "Renderer.h"
+
+#include <glm/gtc/type_ptr.hpp>
+
 class ExampleLayer : public Walnut::Layer
 {
 public:
@@ -13,6 +17,8 @@ public:
 	{
 		ImGui::Begin("Setting");
 		ImGui::Text("Last Render: %.3fms", m_LastRenderTime);
+		ImGui::ColorEdit3("Sphere Color", glm::value_ptr(m_Renderer.GetSphereColor()));
+		ImGui::DragFloat3("Light Direction", glm::value_ptr(m_Renderer.GetLightDirection()), 0.1f);
 		ImGui::End();
 		
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -21,8 +27,9 @@ public:
 		m_ViewportWidth = ImGui::GetContentRegionAvail().x;
 		m_ViewportHeight = ImGui::GetContentRegionAvail().y;
 
-		if(m_Image)
-			ImGui::Image(m_Image->GetDescriptorSet(), ImVec2((float)m_Image->GetWidth(), (float)m_Image->GetHeight()));
+		auto image = m_Renderer.GetFinalImage();
+		if(image)
+			ImGui::Image(image->GetDescriptorSet(), { (float)image->GetWidth(), (float)image->GetHeight() }, ImVec2(0, 1), ImVec2(1, 0));
 
 		ImGui::End();
 		ImGui::PopStyleVar();
@@ -34,32 +41,16 @@ public:
 	{
 		Walnut::Timer timer;
 
-		if (!m_Image || m_ViewportWidth != m_Image->GetWidth() || m_ViewportHeight != m_Image->GetHeight())
-		{
-			m_Image = std::make_shared<Walnut::Image>(m_ViewportWidth, m_ViewportHeight, Walnut::ImageFormat::RGBA);
-
-			delete[] m_ImageData;
-			m_ImageData = new uint32_t[m_ViewportWidth * m_ViewportHeight];
-		}
-
-		for (int y = 0; y < m_ViewportHeight; y++)
-		{
-			for (int x = 0; x < m_ViewportWidth; x++)
-			{
-				m_ImageData[x + y * m_ViewportWidth] = Walnut::Random::UInt();
-				m_ImageData[x + y * m_ViewportWidth] |= 0xff000000;
-			}
-		}
-
-		m_Image->SetData(m_ImageData);
+		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer.Render();
 
 		m_LastRenderTime = timer.ElapsedMillis();
 	}
 
 private:
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-	std::shared_ptr<Walnut::Image> m_Image;
-	uint32_t* m_ImageData = nullptr;
+
+	Renderer m_Renderer;
 
 	float m_LastRenderTime;
 };

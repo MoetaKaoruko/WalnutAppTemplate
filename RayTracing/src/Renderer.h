@@ -16,6 +16,7 @@ public:
 	struct Settings
 	{
 		bool Accumulate = true;
+		bool SlowRandom = true;
 	};
 
 	void OnResize(uint32_t width, uint32_t height);
